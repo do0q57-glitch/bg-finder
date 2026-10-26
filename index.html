@@ -112,6 +112,14 @@ h2.sec em{font-style:normal;color:var(--accent)}
 .focus b{font-size:16px}
 .focus p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
 /* product grid */
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:22px 16px}
+.shot{display:grid;gap:3px;align-content:start;cursor:pointer;border:0;background:none;padding:0;text-align:left;min-width:0;color:inherit;font:inherit}
+.shot .thumb{margin-bottom:6px}.shot:hover .thumb{outline:2px solid var(--accent);outline-offset:2px}
+.shot b{font-size:14px;font-weight:500;overflow-wrap:anywhere}.shot span{font-size:12px;color:var(--muted)}
+.bx{position:absolute;border:2px solid #ffd400;border-radius:3px;box-shadow:0 0 0 1px rgba(0,0,0,.55);pointer-events:none}
+.propchips{display:flex;flex-wrap:wrap;gap:8px}.propchips .chip{font-size:13.5px;padding:6px 13px}
+.propban{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:var(--accent-soft);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13.5px}
+.propban .btn{margin-left:auto}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:28px 18px}
 .card{display:grid;gap:4px;align-content:start;cursor:pointer;border:0;background:none;padding:0;text-align:left;min-width:0}
 .thumb{position:relative;aspect-ratio:16/10;max-width:100%;border-radius:6px;overflow:hidden;background:var(--soft);margin-bottom:8px}
@@ -215,6 +223,10 @@ const GROUPS=[
 const sel={};GROUPS.forEach(g=>sel[g.k]=new Set());
 let mode="and",view="model",cat=null,focus=null,shown=60,sort="rec",q="",home=true;
 let photos={},assets=null,db=null,canUpload=false;
+let PL=[],prop=null,hl=null;
+fetch("props.json").then(r=>r.json()).then(d=>{PL=d.p.map(([ko,syn],i)=>({i,ko,syn,h:d.h[i],keys:[ko,...syn].map(norm)}));render(true)}).catch(()=>{});
+const propFind=w=>w?PL.find(x=>x.keys.includes(w)):null;
+const propMatch=w=>w?PL.filter(x=>x.keys.some(k=>k.includes(w)||(w.length>1&&w.includes(k)&&k.length>1))):[];
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const toast=t=>{const el=$("#toast");el.textContent=t;el.hidden=false;clearTimeout(toast.h);toast.h=setTimeout(()=>el.hidden=true,3200)};
@@ -286,6 +298,7 @@ function card(u){
 function renderHome(){
   const pick=[49,23,60,110,93,35,114,84,66,19,122,73].map(i=>items[i]).filter(Boolean);
   return `<section><div class="hero">${CORDER.map(c=>`<button type="button" class="cat" data-go="${c}"><div class="im">${cover(c)}</div><div class="tx"><b>${CATS[c]}</b><span>소재 ${items.filter(i=>i.cc===c).length}개 · 모델링 ${models.filter(m=>m.cc===c).length}개</span></div></button>`).join("")}</div></section>
+  ${PL.length?`<section><h2 class="sec">소품으로 <em>장면 찾기</em></h2><div class="propchips">${[...PL].filter(x=>!["건물","나무","사람","창문","문","동물"].includes(x.ko)).sort((a,b)=>b.h.length-a.h.length).slice(0,28).map(x=>`<button type="button" class="chip" data-prop="${x.i}">${esc(x.ko)}<span class="n">${x.h.length}</span></button>`).join("")}</div></section>`:""}
   <section><h2 class="sec">많이 쓰는 <em>배경 세트</em></h2><div class="grid">${pick.map(it=>card(it)).join("")}</div></section>
   <div class="loadmore"><button type="button" class="btn pri" data-go="all">전체 모델링 ${models.length}개 보기</button></div>`}
 function renderList(){
@@ -296,16 +309,31 @@ function renderList(){
   const fo=focus!==null?items[focus]:null;
   return `<div class="crumb"><button type="button" data-go="home">홈</button> › ${cat?CATS[cat]:"전체"}${fo?" › "+esc(fo.n):""}</div>
   <h2 class="sec">${q?`'<em>${esc(q)}</em>' 검색 결과`:cat?CATS[cat]:"전체 배경"}</h2>
+  ${(()=>{const P=q&&propFind(norm(q));return P?`<div class="propban">🔍 '${esc(P.ko)}'가 보이는 스크린샷 <b>${P.h.length}</b>장이 있어요<button type="button" class="btn pri" data-prop="${P.i}">장면으로 보기</button></div>`:""})()}
   ${genreCirc?`<div class="circles">${genreCirc}</div>`:""}
   ${fo?`<div class="focus" style="--cat:var(--c-${fo.cc})"><div><b>${esc(fo.n)}</b><p>${CATS[fo.cc]} · 모델링 ${fo.models.length}개 · ${esc(fo.d)}</p></div><div class="links"><a href="https://gleecompany.notion.site/${fo.p}" target="_blank" rel="noopener">노션 상세 ↗</a><button type="button" class="btn" id="unfocus">세트 묶음 해제</button></div></div>`:""}
   <div class="toolbar"><span class="count"><b>${list.length}</b>개 ${view==="model"?"모델링":"소재"}</span><div class="active">${act.join("")}${(act.length||q)?`<button type="button" class="reset" id="reset">모두 해제</button>`:""}</div>
     <select class="sort" id="sort" aria-label="정렬"><option value="rec"${sort==="rec"?" selected":""}>기본순</option><option value="name"${sort==="name"?" selected":""}>이름순</option><option value="img"${sort==="img"?" selected":""}>이미지 많은순</option><option value="new"${sort==="new"?" selected":""}>최근 추가순</option></select></div>
   ${list.length?`<div class="grid">${list.slice(0,shown).map(card).join("")}</div>`:`<div class="empty">조건에 맞는 배경이 없어요.<br>태그 조합을 <b>하나라도</b>로 바꾸거나 필터를 하나 빼 보세요.</div>`}
   ${list.length>shown?`<div class="loadmore"><button type="button" class="btn" id="more">더 보기 (${list.length-shown}개 남음)</button></div>`:""}`}
+function shotHits(P){return P.h.filter(([m])=>!cat||models[m].cc===cat)}
+function boxes(b){let o="";for(let x=0;x<b.length;x+=4)o+=`<i class="bx" style="left:${b[x]}%;top:${b[x+1]}%;width:${b[x+2]-b[x]}%;height:${b[x+3]-b[x+1]}%"></i>`;return o}
+function renderProp(){
+  const P=PL[prop];const hs=shotHits(P);
+  const others=propMatch(norm(P.ko)).filter(x=>x!==P);
+  return `<div class="crumb"><button type="button" data-go="home">홈</button> › 소품 찾기${cat?" › "+CATS[cat]:""}</div>
+  <h2 class="sec">'<em>${esc(P.ko)}</em>'가 보이는 장면</h2>
+  <div class="toolbar"><span class="count"><b>${hs.length}</b>장 · 모델링 ${new Set(hs.map(h=>h[0])).size}개</span>
+   <div class="active">${CORDER.map(c=>`<button type="button" class="chip" data-pcat="${c}" aria-pressed="${cat===c}">${CATS[c]}<span class="n">${P.h.filter(([m])=>models[m].cc===c).length}</span></button>`).join("")}</div>
+   <button type="button" class="reset" data-go="all">소품 찾기 닫기</button></div>
+  <p style="margin:-6px 0 16px;font-size:12.5px;color:var(--muted)">노란 상자가 AI가 '${esc(P.ko)}'(으)로 알아본 부분이에요. 자동 인식이라 틀린 장면이 섞여 있을 수 있어요. 비슷한 소품: ${P.syn.slice(0,4).map(esc).join(", ")}</p>
+  ${hs.length?`<div class="shots">${hs.slice(0,shown).map(([m,t,c,b])=>{const u=models[m];const tl=u.tl[t];if(!tl)return"";
+    return `<button type="button" class="shot" data-shot="${u.key}|${t}"><div class="thumb">${tileImg({file:`h/${u.i}_${tl[0]}.jpg`,n:u.it.hl[tl[0]],k:tl[1]},u.n)}${boxes(b)}</div><b>${esc(u.n)}</b><span>${CATS[u.cc]} · ${esc(u.it.n)}</span></button>`}).join("")}</div>`:`<div class="empty">이 분류에는 '${esc(P.ko)}'가 보이는 장면이 없어요.</div>`}
+  ${hs.length>shown?`<div class="loadmore"><button type="button" class="btn" id="more">더 보기 (${hs.length-shown}장 남음)</button></div>`:""}`}
 function render(keep){
   if(!keep)shown=60;
   renderNav();renderFilters();
-  $("#main").innerHTML=home&&!cat&&!q&&focus===null&&!GROUPS.some(g=>sel[g.k].size)?renderHome():renderList();
+  $("#main").innerHTML=prop!==null?renderProp():home&&!cat&&!q&&focus===null&&!GROUPS.some(g=>sel[g.k].size)?renderHome():renderList();
   try{localStorage.setItem("bgf3",JSON.stringify({mode,view,sort}))}catch(e){}
 }
 function setRoute(){const h=location.hash.slice(1);const c=Object.keys(SLUG).find(k=>SLUG[k]===h);if(c){cat=c;home=false}else if(h==="all"){cat=null;home=false}}
@@ -317,11 +345,13 @@ function suggest(){
   const w=norm(v);const tags=[];GROUPS.forEach(g=>g.order.forEach(t=>{if(norm(t).includes(w))tags.push({type:"tag",g:g.k,v:t,label:t,sub:g.label})}));
   const sets=items.filter(i=>norm(i.n).includes(w)).slice(0,6).map(i=>({type:"set",id:i.id,label:i.n,sub:CATS[i.cc]+" · 모델링 "+i.models.length}));
   const ms=models.filter(m=>norm(m.n).includes(w)).slice(0,8).map(m=>({type:"model",key:m.key,label:m.n,sub:m.it.n}));
-  sOpts=[{type:"q",label:`'${v}' 전체 검색`,sub:`${models.filter(m=>m._h.includes(w)).length}개`},...tags.slice(0,5),...sets,...ms];sIdx=-1;
+  const pr=propMatch(w).sort((a,b)=>(b.keys[0]===w)-(a.keys[0]===w)||b.h.length-a.h.length).slice(0,4).map(x=>({type:"prop",i:x.i,label:x.ko+" 보이는 장면",sub:`스크린샷 ${x.h.length}장`}));
+  sOpts=[{type:"q",label:`'${v}' 전체 검색`,sub:`${models.filter(m=>m._h.includes(w)).length}개`},...pr,...tags.slice(0,5),...sets,...ms];sIdx=-1;
   const sec=(t,arr)=>arr.length?`<h4>${t}</h4>`+arr.map(o=>`<button type="button" data-s="${sOpts.indexOf(o)}">${esc(o.label)}<small>${esc(o.sub)}</small></button>`).join(""):"";
-  box.innerHTML=sec("검색",[sOpts[0]])+sec("태그로 거르기",sOpts.filter(o=>o.type==="tag"))+sec("배경 세트",sOpts.filter(o=>o.type==="set"))+sec("모델링",sOpts.filter(o=>o.type==="model"));box.hidden=false}
+  box.innerHTML=sec("검색",[sOpts[0]])+sec("소품으로 장면 찾기",sOpts.filter(o=>o.type==="prop"))+sec("태그로 거르기",sOpts.filter(o=>o.type==="tag"))+sec("배경 세트",sOpts.filter(o=>o.type==="set"))+sec("모델링",sOpts.filter(o=>o.type==="model"));box.hidden=false}
 function pickSugg(o){$("#sugg").hidden=true;
-  if(o.type==="q"){q=$("#q").value.trim();home=false;render();return}
+  if(o.type==="q"){q=$("#q").value.trim();prop=null;home=false;render();return}
+  if(o.type==="prop"){prop=o.i;q="";home=false;render();window.scrollTo({top:0});return}
   if(o.type==="tag"){sel[o.g].add(o.v);$("#q").value="";q="";home=false;render();return}
   if(o.type==="set"){focus=o.id;cat=items[o.id].cc;view="model";$("#q").value="";q="";home=false;render();return}
   if(o.type==="model"){openDetail(o.key)}}
@@ -329,7 +359,7 @@ $("#q").addEventListener("input",suggest);
 $("#q").addEventListener("focus",suggest);
 $("#q").addEventListener("keydown",e=>{const box=$("#sugg");const bs=[...box.querySelectorAll("button")];
   if(e.key==="ArrowDown"||e.key==="ArrowUp"){e.preventDefault();if(!bs.length)return;sIdx=(sIdx+(e.key==="ArrowDown"?1:-1)+bs.length)%bs.length;bs.forEach((b,i)=>b.classList.toggle("on",i===sIdx));return}
-  if(e.key==="Enter"){e.preventDefault();if(sIdx>=0&&bs[sIdx])pickSugg(sOpts[+bs[sIdx].dataset.s]);else{box.hidden=true;q=$("#q").value.trim();home=false;render()}}
+  if(e.key==="Enter"){e.preventDefault();if(sIdx>=0&&bs[sIdx])pickSugg(sOpts[+bs[sIdx].dataset.s]);else{box.hidden=true;const v=$("#q").value.trim();const P=propFind(norm(v));if(P){prop=P.i;q=""}else{prop=null;q=v}home=false;render();window.scrollTo({top:0})}}
   if(e.key==="Escape")box.hidden=true});
 document.addEventListener("click",e=>{if(!e.target.closest(".sbox"))$("#sugg").hidden=true});
 
@@ -363,8 +393,9 @@ function openDetail(key,tile=0){
      ${(it.nas||[]).length?`<div class="nas"><div class="set" style="margin-bottom:4px">NAS · 폴더 경로 (노션 기재)</div>${it.nas.map(x=>`<div class="nasrow"><code>${esc(x)}</code><button type="button" class="btn" data-copy="${esc(x)}">복사</button></div>`).join("")}</div>`:""}
      ${canUpload?`<div class="tools"><span>이미지가 틀렸나요?</span><button type="button" class="btn" data-up="${key}">이미지 넣기</button>${(ph.ids||[]).length?`<button type="button" class="btn" data-hide="${key}">${ph.hide?"기본 이미지 다시 보기":"기본 이미지 숨기기"}</button><button type="button" class="btn warn" data-clear="${key}">올린 이미지 지우기</button>`:""}</div>`:""}
    </div>`;
+  if(hl!==null&&PL[hl]&&u.it&&p&&p.file){const mi=models.indexOf(u);const t=u.tl.findIndex(([c,k])=>p.file===`h/${u.i}_${c}.jpg`&&p.k===k);const h=PL[hl].h.find(x=>x[0]===mi&&x[1]===t);if(h)$("#dlg .big").insertAdjacentHTML("beforeend",boxes(h[3]))}
   $("#ov").hidden=false;document.body.style.overflow="hidden";$("#close").focus()}
-function closeDetail(){$("#ov").hidden=true;document.body.style.overflow="";cur=null}
+function closeDetail(){hl=null;$("#ov").hidden=true;document.body.style.overflow="";cur=null}
 $("#ov").addEventListener("click",e=>{if(e.target.id==="ov")closeDetail()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("#ov").hidden)closeDetail()});
 
@@ -375,7 +406,10 @@ document.addEventListener("click",async e=>{
   if(t.closest("#close")){closeDetail();return}
   const dt=t.closest("[data-dt]");if(dt){openDetail(cur,+dt.dataset.dt);return}
   const op=t.closest("[data-open]");if(op){openDetail(op.dataset.open);return}
-  const go=t.closest("[data-go]");if(go){const g=go.dataset.go;focus=null;q="";$("#q").value="";
+  const pp=t.closest("[data-prop]");if(pp){prop=+pp.dataset.prop;q="";$("#q").value=PL[prop].ko;focus=null;home=false;closeDetail();render();window.scrollTo({top:0});return}
+  const pc=t.closest("[data-pcat]");if(pc){cat=cat===pc.dataset.pcat?null:pc.dataset.pcat;render();return}
+  const sh=t.closest("[data-shot]");if(sh){const [k,tt]=sh.dataset.shot.split("|");const ph=photos[k]||{};hl=prop;openDetail(k,(ph.hide?0:(ph.ids||[]).length)+ +tt);return}
+  const go=t.closest("[data-go]");if(go){const g=go.dataset.go;focus=null;q="";prop=null;$("#q").value="";
     if(g==="home"){home=true;cat=null;GROUPS.forEach(x=>sel[x.k].clear());history.replaceState(null,"",location.pathname+location.search)}
     else if(g==="all"){home=false;cat=null;location.hash="all"}else{home=false;cat=g;location.hash=SLUG[g]}
     render();window.scrollTo({top:0});return}

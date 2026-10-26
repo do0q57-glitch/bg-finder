@@ -51,6 +51,7 @@ button{font:inherit;color:inherit}
 .sugg button{display:flex;justify-content:space-between;gap:10px;width:100%;text-align:left;border:0;background:none;padding:7px 10px;border-radius:6px;cursor:pointer;font-size:13.5px}
 .sugg button:hover,.sugg button.on{background:var(--soft)}
 .sugg small{color:var(--faint);flex:none}
+.nasbtn{color:var(--ink);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:6px 10px;white-space:nowrap}.nasbtn:hover{border-color:var(--ink)}@media(max-width:760px){.hstat{display:none}}
 .hdr{margin-left:auto;display:flex;gap:10px;align-items:center;font-size:12.5px;color:var(--muted);flex:none}
 .nav{display:flex;gap:4px 26px;align-items:center;flex-wrap:wrap;padding-block:6px 0}
 .nav button{border:0;background:none;padding:8px 0 10px;font-size:16px;font-weight:700;cursor:pointer;border-bottom:2.5px solid transparent;color:var(--ink)}
@@ -262,7 +263,7 @@ function renderNav(){
   const counts=c=>models.filter(m=>m.cc===c).length;
   $("#nav").innerHTML=`<button type="button" data-go="home" aria-current="${home&&!cat}">홈</button><button type="button" data-go="all" aria-current="${!home&&!cat}">전체</button><span class="sep"></span>${CORDER.map(c=>`<button type="button" data-go="${c}" aria-current="${cat===c}">${CATS[c]}</button>`).join("")}
   <div class="seg" role="group" aria-label="보기 단위"><button type="button" data-view="model" aria-pressed="${view==="model"}">모델링별</button><button type="button" data-view="item" aria-pressed="${view==="item"}">소재 묶음별</button></div>`;
-  $("#hdr").innerHTML=`노션 동기화 ${SYNCED} · 소재 ${items.length} · 모델링 ${models.length}`;
+  $("#hdr").innerHTML=`<span class="hstat">노션 동기화 ${SYNCED} · 소재 ${items.length} · 모델링 ${models.length}</span><a class="nasbtn" href="${nasUrl()}" target="_blank" rel="noopener" title="회사 NAS 계정으로 로그인한 사람만 열 수 있어요">🔒 NAS 소재 폴더</a>`;
 }
 function renderFilters(){
   const box=$("#filters");
@@ -332,6 +333,11 @@ $("#q").addEventListener("keydown",e=>{const box=$("#sugg");const bs=[...box.que
   if(e.key==="Escape")box.hidden=true});
 document.addEventListener("click",e=>{if(!e.target.closest(".sbox"))$("#sugg").hidden=true});
 
+/* ---------- NAS (File Station: NAS 로그인한 사람만 열림) ---------- */
+const NAS_BASE="https://gleecompany.synology.me:5501";
+const NAS_ROOT="";   // 소재 폴더 경로, 예: "/배경소재"
+function nasUrl(sub){const path=[NAS_ROOT,sub].filter(Boolean).join("/").replace(/\/+/g,"/");
+  return path?`${NAS_BASE}/index.cgi?launchApp=SYNO.SDS.App.FileStation3.Instance&launchParam=${encodeURIComponent("openfile="+encodeURIComponent(path.endsWith("/")?path:path+"/"))}`:`${NAS_BASE}/index.cgi?launchApp=SYNO.SDS.App.FileStation3.Instance`}
 /* ---------- detail ---------- */
 let cur=null;
 function findUnit(key){return key[0]==="m"?models.find(m=>m.key===key):items.find(i=>i.key===key)}
@@ -353,7 +359,7 @@ function openDetail(key,tile=0){
      <div><div class="set" style="margin-bottom:6px">분위기 · 장르 · 시간</div><div class="pills">${pills("m")}${u.g.map(v=>`<span class="pill">${esc(v)}</span>`).join("")}${u.t.map(v=>`<span class="pill">${esc(v)}</span>`).join("")}</div></div>
      <p style="margin:0;font-size:13px;color:var(--muted)">${esc(it.d)}</p>
      ${!u.it?`<p style="margin:0;font-size:12.5px;color:var(--muted)">${esc(it.b)}</p>`:""}
-     <div class="links"><button type="button" class="pri" data-v3="1">3D로 열기</button><a href="https://gleecompany.notion.site/${it.p}" target="_blank" rel="noopener">노션 상세 보기 ↗</a>${it.u?`<a href="${esc(it.u)}" target="_blank" rel="noopener">구매·출처 ↗</a>`:""}</div>
+     <div class="links"><button type="button" class="pri" data-v3="1">3D로 열기</button><a href="https://gleecompany.notion.site/${it.p}" target="_blank" rel="noopener">노션 상세 보기 ↗</a>${it.u?`<a href="${esc(it.u)}" target="_blank" rel="noopener">구매·출처 ↗</a>`:""}<a href="${nasUrl(it.nf||"")}" target="_blank" rel="noopener" title="회사 NAS 계정으로 로그인해야 열려요">🔒 NAS에서 열기</a></div>
      ${(it.nas||[]).length?`<div class="nas"><div class="set" style="margin-bottom:4px">NAS · 폴더 경로 (노션 기재)</div>${it.nas.map(x=>`<div class="nasrow"><code>${esc(x)}</code><button type="button" class="btn" data-copy="${esc(x)}">복사</button></div>`).join("")}</div>`:""}
      ${canUpload?`<div class="tools"><span>이미지가 틀렸나요?</span><button type="button" class="btn" data-up="${key}">이미지 넣기</button>${(ph.ids||[]).length?`<button type="button" class="btn" data-hide="${key}">${ph.hide?"기본 이미지 다시 보기":"기본 이미지 숨기기"}</button><button type="button" class="btn warn" data-clear="${key}">올린 이미지 지우기</button>`:""}</div>`:""}
    </div>`;

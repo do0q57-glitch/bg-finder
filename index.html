@@ -174,6 +174,7 @@ h2.sec em{font-style:normal;color:var(--accent)}
 .galg button[aria-current="true"]{border-color:var(--accent)}
 .galg img{position:absolute;left:0;top:0;width:100%}.galg img.full{height:100%;object-fit:cover}
 .galg .no{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:4px;padding:1px 6px;font-family:var(--mono)}
+.thumb img.hq,.galg img.hq{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .25s;transform:none}.thumb img.hq.ct{object-fit:contain;background:var(--soft)}.thumb img.hq.on,.galg img.hq.on{opacity:1}
 .big img.hq{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--soft);opacity:0;transition:opacity .2s}.big img.hq.on{opacity:1}
 .big .orig{position:absolute;left:10px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;border-radius:4px;padding:3px 9px;text-decoration:none}.big .orig:hover{background:rgba(0,0,0,.8)}
 .big .nav{z-index:2}.big .cnt,.big .orig{z-index:2}
@@ -236,7 +237,7 @@ const sel={};GROUPS.forEach(g=>sel[g.k]=new Set());
 let mode="and",view="model",cat=null,focus=null,shown=60,sort="rec",q="",home=true;
 let photos={},assets=null,db=null,canUpload=false;
 let PL=[],prop=null,hl=null,FULL=null;
-fetch("full.json").then(r=>r.json()).then(d=>{FULL=d;if(cur)openDetail(cur,curTile,true)}).catch(()=>{});
+fetch("full.json").then(r=>r.json()).then(d=>{FULL=d;render(true);if(cur)openDetail(cur,curTile,true)}).catch(()=>{});
 const NS="https://gleecompany.notion.site/image/";
 function origUrl(o,w){if(!FULL||!o)return null;const v=(FULL[o[0]]||[])[o[1]];if(!v)return null;const [b,s0]=v.split("|");
   const src=s0.startsWith("1:")?"https://s3-us-west-2.amazonaws.com/secure.notion-static.com/"+s0.slice(2):s0.startsWith("2:")?"https://prod-files-secure.s3.us-west-2.amazonaws.com/d9fae991-ca2f-4147-b28b-f0e1773d49f6/"+s0.slice(2):s0;
@@ -264,11 +265,12 @@ function photoList(u){
 function cardPhoto(u){
   const ph=photos[u.key]||{};if((ph.ids||[]).length)return {blob:ph.ids[0]};
   if(ph.hide)return null;
-  if(u.it){if(u.ci>=0)return {file:`m/${u.i}.jpg`,n:u.it.mc,k:u.ci};const it=u.it;return it.img?{file:`img/${it.id}.jpg`,n:it.img.length,k:0}:null}
+  if(u.it){if(u.ci>=0)return {file:`m/${u.i}.jpg`,n:u.it.mc,k:u.ci,o:[u.idx,0]};const it=u.it;return it.img?{file:`img/${it.id}.jpg`,n:it.img.length,k:0}:null}
   if(u.img)return {file:`img/${u.id}.jpg`,n:u.img.length,k:0};
-  return u.mc?{file:`m/${u.id}.jpg`,n:u.mc,k:u.cv||0}:null}
-const tileImg=(p,alt="",lazy=true)=>p.blob?`<img class="full" src="/_blob/${esc(p.blob)}" alt="${esc(alt)}"${lazy?' loading="lazy"':""}>`
-  :`<img src="${p.file}" alt="${esc(alt)}"${lazy?' loading="lazy"':""} style="height:${p.n*100}%;transform:translateY(-${p.k*100/p.n}%)">`;
+  if(!u.mc)return null;const cm=u.models.filter(m=>m.ci>=0)[u.cv||0];return {file:`m/${u.id}.jpg`,n:u.mc,k:u.cv||0,o:cm?[cm.idx,0]:null}}
+const hqImg=(p,fit)=>{const u=p.o&&origUrl(p.o,fit==="contain"?960:640);return u?`<img class="hq${fit==="contain"?" ct":""}" src="${u}" alt="" loading="lazy" decoding="async" onload="this.classList.add('on')" onerror="this.remove()">`:""};
+const tileImg=(p,alt="",lazy=true,fit="cover")=>p.blob?`<img class="full" src="/_blob/${esc(p.blob)}" alt="${esc(alt)}"${lazy?' loading="lazy"':""}>`
+  :`<img src="${p.file}" alt="${esc(alt)}"${lazy?' loading="lazy"':""} style="height:${p.n*100}%;transform:translateY(-${p.k*100/p.n}%)">`+(lazy?hqImg(p,fit):"");
 
 /* ---------- filtering ---------- */
 const pool=()=>view==="model"?models:items;
@@ -346,7 +348,7 @@ function renderProp(){
    <button type="button" class="reset" data-go="all">소품 찾기 닫기</button></div>
   <p style="margin:-6px 0 16px;font-size:12.5px;color:var(--muted)">노란 상자가 AI가 '${esc(P.ko)}'(으)로 알아본 부분이에요. 자동 인식이라 틀린 장면이 섞여 있을 수 있어요. 비슷한 소품: ${P.syn.slice(0,4).map(esc).join(", ")}</p>
   ${hs.length?`<div class="shots">${hs.slice(0,shown).map(([m,t,c,b])=>{const u=models[m];const tl=u.tl[t];if(!tl)return"";
-    return `<button type="button" class="shot" data-shot="${u.key}|${t}"><div class="thumb">${tileImg({file:`h/${u.i}_${tl[0]}.jpg`,n:u.it.hl[tl[0]],k:tl[1]},u.n)}${boxes(b)}</div><b>${esc(u.n)}</b><span>${CATS[u.cc]} · ${esc(u.it.n)}</span></button>`}).join("")}</div>`:`<div class="empty">이 분류에는 '${esc(P.ko)}'가 보이는 장면이 없어요.</div>`}
+    return `<button type="button" class="shot" data-shot="${u.key}|${t}"><div class="thumb">${tileImg({file:`h/${u.i}_${tl[0]}.jpg`,n:u.it.hl[tl[0]],k:tl[1],o:[m,t]},u.n,true,"contain")}${boxes(b)}</div><b>${esc(u.n)}</b><span>${CATS[u.cc]} · ${esc(u.it.n)}</span></button>`}).join("")}</div>`:`<div class="empty">이 분류에는 '${esc(P.ko)}'가 보이는 장면이 없어요.</div>`}
   ${hs.length>shown?`<div class="loadmore"><button type="button" class="btn" id="more">더 보기 (${hs.length-shown}장 남음)</button></div>`:""}`}
 function render(keep){
   if(!keep)shown=60;

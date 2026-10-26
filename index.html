@@ -174,6 +174,9 @@ h2.sec em{font-style:normal;color:var(--accent)}
 .galg button[aria-current="true"]{border-color:var(--accent)}
 .galg img{position:absolute;left:0;top:0;width:100%}.galg img.full{height:100%;object-fit:cover}
 .galg .no{position:absolute;left:6px;bottom:6px;background:rgba(0,0,0,.6);color:#fff;font-size:11px;border-radius:4px;padding:1px 6px;font-family:var(--mono)}
+.big img.hq{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:var(--soft);opacity:0;transition:opacity .2s}.big img.hq.on{opacity:1}
+.big .orig{position:absolute;left:10px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;border-radius:4px;padding:3px 9px;text-decoration:none}.big .orig:hover{background:rgba(0,0,0,.8)}
+.big .nav{z-index:2}.big .cnt,.big .orig{z-index:2}
 .big .nav{position:absolute;top:50%;transform:translateY(-50%);border:0;background:rgba(0,0,0,.45);color:#fff;width:40px;height:56px;font-size:24px;cursor:pointer;border-radius:6px}
 .big .nav.l{left:8px}.big .nav.r{right:8px}.big .cnt{position:absolute;right:10px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;border-radius:4px;padding:2px 8px;font-family:var(--mono)}
 .sib h4{margin:6px 0 8px;font-size:13px}
@@ -219,7 +222,7 @@ const CATS={E:"동양풍",F:"판타지",M:"현대",N:"자연물"};
 const SLUG={E:"oriental",F:"fantasy",M:"modern",N:"nature"};
 const CORDER=["E","F","M","N"];
 const items=DATA.items.map((x,i)=>({...x,id:i,cc:x.c,s:[x.s]}));
-const models=DATA.models.map(m=>{const it=items[m.i];return {...m,key:"m"+m.i+"-"+m.k,it,cc:it.cc,f:it.f,g:it.g,m:it.m,s:[m.s||it.s[0]],t:[...new Set([...it.t,...m.t])],e:m.e.length?m.e:it.e}});
+const models=DATA.models.map((m,idx)=>{const it=items[m.i];return {...m,idx,key:"m"+m.i+"-"+m.k,it,cc:it.cc,f:it.f,g:it.g,m:it.m,s:[m.s||it.s[0]],t:[...new Set([...it.t,...m.t])],e:m.e.length?m.e:it.e}});
 items.forEach(it=>{it.key="i"+it.id;it.it=null;it.models=models.filter(m=>m.i===it.id)});
 const GROUPS=[
  {k:"m",label:"분위기",open:true,order:["화사·밝음","따뜻·아늑","화려·고급","웅장·장엄","로맨틱·동화","신비·몽환","경건·성스러움","차분·클래식","소박·서민적","차갑·도시적","어둡·음산","황폐·폐허"]},
@@ -232,7 +235,13 @@ const GROUPS=[
 const sel={};GROUPS.forEach(g=>sel[g.k]=new Set());
 let mode="and",view="model",cat=null,focus=null,shown=60,sort="rec",q="",home=true;
 let photos={},assets=null,db=null,canUpload=false;
-let PL=[],prop=null,hl=null;
+let PL=[],prop=null,hl=null,FULL=null;
+fetch("full.json").then(r=>r.json()).then(d=>{FULL=d;if(cur)openDetail(cur,curTile,true)}).catch(()=>{});
+const NS="https://gleecompany.notion.site/image/";
+function origUrl(o,w){if(!FULL||!o)return null;const v=(FULL[o[0]]||[])[o[1]];if(!v)return null;const [b,s0]=v.split("|");
+  const src=s0.startsWith("1:")?"https://s3-us-west-2.amazonaws.com/secure.notion-static.com/"+s0.slice(2):s0.startsWith("2:")?"https://prod-files-secure.s3.us-west-2.amazonaws.com/d9fae991-ca2f-4147-b28b-f0e1773d49f6/"+s0.slice(2):s0;
+  const id=b.replace(/^(.{8})(.{4})(.{4})(.{4})(.{12})$/,"$1-$2-$3-$4-$5");
+  return `${NS}${encodeURIComponent(src)}?table=block&id=${id}&spaceId=d9fae991-ca2f-4147-b28b-f0e1773d49f6${w?"&width="+w:""}&cache=v2`}
 fetch("props.json").then(r=>r.json()).then(d=>{PL=d.p.map(([ko,syn],i)=>({i,ko,syn,h:d.h[i],keys:[ko,...syn].map(norm)}));render(true)}).catch(()=>{});
 const propFind=w=>w?PL.find(x=>x.keys.includes(w)):null;
 const propMatch=w=>w?PL.filter(x=>x.keys.some(k=>k.includes(w)||(w.length>1&&w.includes(k)&&k.length>1))):[];
@@ -246,10 +255,10 @@ function photoList(u){
   const ph=photos[u.key]||{};const out=(ph.ids||[]).map(id=>({blob:id}));
   if(!ph.hide){
     if(u.it){const it=u.it;
-      if(u.tl.length)u.tl.forEach(([c,k])=>out.push({file:`h/${u.i}_${c}.jpg`,n:it.hl[c],k,lab:"노션"}));
+      if(u.tl.length)u.tl.forEach(([c,k],t)=>out.push({file:`h/${u.i}_${c}.jpg`,n:it.hl[c],k,lab:"노션",o:[u.idx,t]}));
       else if(it.img)[...it.img].forEach((s,k)=>out.push({file:`img/${it.id}.jpg`,n:it.img.length,k,lab:s==="n"?"노션":"판매처"}));
     }else{[...(u.img||"")].forEach((s,k)=>out.push({file:`img/${u.id}.jpg`,n:u.img.length,k,lab:s==="n"?"노션":"판매처"}));
-      u.models.slice(0,8).forEach(m=>{if(m.tl.length){const [c,k]=m.tl[0];out.push({file:`h/${u.id}_${c}.jpg`,n:u.hl[c],k,lab:"노션"})}})}
+      u.models.forEach(m=>{if(m.tl.length){const [c,k]=m.tl[0];out.push({file:`h/${u.id}_${c}.jpg`,n:u.hl[c],k,lab:"노션",o:[m.idx,0]})}})}
   }
   return out}
 function cardPhoto(u){
@@ -387,7 +396,7 @@ function openDetail(key,tile=0,keepScroll){
   const pills=k=>u[k].map(v=>`<span class="pill">${esc(v)}</span>`).join("")||"<span class='pill'>-</span>";
   $("#dlg").innerHTML=`<button type="button" class="x" id="close" aria-label="닫기">×</button>
    <div>
-     <div class="big">${ps.length>1?`<button type="button" class="nav l" data-dt="${(tile-1+ps.length)%ps.length}" aria-label="이전 이미지">‹</button><button type="button" class="nav r" data-dt="${(tile+1)%ps.length}" aria-label="다음 이미지">›</button><span class="cnt">${tile+1} / ${ps.length}</span>`:""}${p?tileImg(p,u.n,false):`<span class="none" style="position:absolute;inset:0;display:grid;place-items:center;color:var(--faint)">미리보기 없음</span>`}</div>
+     <div class="big">${ps.length>1?`<button type="button" class="nav l" data-dt="${(tile-1+ps.length)%ps.length}" aria-label="이전 이미지">‹</button><button type="button" class="nav r" data-dt="${(tile+1)%ps.length}" aria-label="다음 이미지">›</button><span class="cnt">${tile+1} / ${ps.length}</span>`:""}${p?tileImg(p,u.n,false)+(origUrl(p.o)?`<img class="hq" src="${origUrl(p.o,1600)}" alt="" onload="this.classList.add('on')"><a class="orig" href="${origUrl(p.o)}" target="_blank" rel="noopener">원본 크게 ↗</a>`:""):`<span class="none" style="position:absolute;inset:0;display:grid;place-items:center;color:var(--faint)">미리보기 없음</span>`}</div>
    </div>
    <div class="info">
      <div class="set"><span style="color:var(--c-${it.cc});font-weight:700">${CATS[it.cc]}</span> · ${u.it?`<button type="button" data-focus="${it.id}">${esc(it.n)} 세트 전체 보기 ›</button>`:esc(it.f.join(" · "))}</div>
@@ -404,6 +413,7 @@ function openDetail(key,tile=0,keepScroll){
    ${ps.length>1?`<div class="gal"><h4>${u.it?"이미지 전체":"모델링 대표 이미지"} ${ps.length}장<small>누르면 위에서 크게 볼 수 있어요 · ← → 키로 넘기기</small></h4><div class="galg">${ps.map((x,k)=>`<button type="button" data-dt="${k}" aria-current="${k===tile}" aria-label="이미지 ${k+1}">${tileImg(x)}<span class="no">${k+1}</span></button>`).join("")}</div></div>`:""}
    ${u.it&&sibs.length>1?`<div class="sib"><h4>같은 세트의 모델링 ${sibs.length}개</h4><div class="sibs">${sibs.map(m=>{const mp=cardPhoto(m);return `<button type="button" data-open="${m.key}" aria-current="${m.key===key}"><div class="thumb">${mp?tileImg(mp,m.n):""}</div><span>${esc(m.n)}</span></button>`}).join("")}</div></div>`:""}`;
   if(hl!==null&&PL[hl]&&u.it&&p&&p.file){const mi=models.indexOf(u);const t=u.tl.findIndex(([c,k])=>p.file===`h/${u.i}_${c}.jpg`&&p.k===k);const h=PL[hl].h.find(x=>x[0]===mi&&x[1]===t);if(h)$("#dlg .big").insertAdjacentHTML("beforeend",boxes(h[3]))}
+  [tile+1,tile-1].forEach(x=>{const q=ps[(x+ps.length)%ps.length];const ou=q&&origUrl(q.o,1600);if(ou)new Image().src=ou});
   $("#ov").hidden=false;document.body.style.overflow="hidden";if(keepScroll)$("#ov").scrollTop=sy;else{$("#ov").scrollTop=0;$("#close").focus()}}
 function closeDetail(){hl=null;$("#ov").hidden=true;document.body.style.overflow="";cur=null}
 $("#ov").addEventListener("click",e=>{if(e.target.id==="ov")closeDetail()});

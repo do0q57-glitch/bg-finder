@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>[hidden]{display:none!important}img{max-width:100%}</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 </head>
 <body>
 <title>배경 소재 파인더</title>
@@ -154,8 +155,8 @@ h2.sec em{font-style:normal;color:var(--accent)}
 .kv dd{margin:0}
 .info .pills{flex-wrap:wrap}
 .links{display:flex;flex-wrap:wrap;gap:8px}
-.links a{font-size:13px;text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:7px 12px;color:var(--ink)}
-.links a.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.links a,.links button{font:inherit;cursor:pointer;font-size:13px;text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:7px 12px;color:var(--ink)}
+.links a.pri,.links button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .tools{border-top:1px solid var(--line);padding-top:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
 .sib h4{margin:6px 0 8px;font-size:13px}
 .sibs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
@@ -352,7 +353,7 @@ function openDetail(key,tile=0){
      <div><div class="set" style="margin-bottom:6px">분위기 · 장르 · 시간</div><div class="pills">${pills("m")}${u.g.map(v=>`<span class="pill">${esc(v)}</span>`).join("")}${u.t.map(v=>`<span class="pill">${esc(v)}</span>`).join("")}</div></div>
      <p style="margin:0;font-size:13px;color:var(--muted)">${esc(it.d)}</p>
      ${!u.it?`<p style="margin:0;font-size:12.5px;color:var(--muted)">${esc(it.b)}</p>`:""}
-     <div class="links"><a class="pri" href="https://gleecompany.notion.site/${it.p}" target="_blank" rel="noopener">노션 상세 보기 ↗</a>${it.u?`<a href="${esc(it.u)}" target="_blank" rel="noopener">구매·출처 ↗</a>`:""}</div>
+     <div class="links"><button type="button" class="pri" data-v3="1">3D로 열기</button><a href="https://gleecompany.notion.site/${it.p}" target="_blank" rel="noopener">노션 상세 보기 ↗</a>${it.u?`<a href="${esc(it.u)}" target="_blank" rel="noopener">구매·출처 ↗</a>`:""}</div>
      ${(it.nas||[]).length?`<div class="nas"><div class="set" style="margin-bottom:4px">NAS · 폴더 경로 (노션 기재)</div>${it.nas.map(x=>`<div class="nasrow"><code>${esc(x)}</code><button type="button" class="btn" data-copy="${esc(x)}">복사</button></div>`).join("")}</div>`:""}
      ${canUpload?`<div class="tools"><span>이미지가 틀렸나요?</span><button type="button" class="btn" data-up="${key}">이미지 넣기</button>${(ph.ids||[]).length?`<button type="button" class="btn" data-hide="${key}">${ph.hide?"기본 이미지 다시 보기":"기본 이미지 숨기기"}</button><button type="button" class="btn warn" data-clear="${key}">올린 이미지 지우기</button>`:""}</div>`:""}
    </div>`;
@@ -376,6 +377,7 @@ document.addEventListener("click",async e=>{
   const c=t.closest("[data-g]");if(c){const s=sel[c.dataset.g],v=c.dataset.v;s.has(v)?s.delete(v):s.add(v);home=false;render();return}
   const f=t.closest("[data-focus]");if(f){focus=+f.dataset.focus;cat=items[focus].cc;view="model";home=false;closeDetail();render();window.scrollTo({top:0});return}
   if(t.dataset.copy){const v=t.dataset.copy;try{await navigator.clipboard.writeText(v);toast("복사했어요")}catch(err){const c=t.previousElementSibling;const r=document.createRange();r.selectNodeContents(c);const s2=getSelection();s2.removeAllRanges();s2.addRange(r);toast("선택됐어요. Ctrl+C로 복사하세요")}return}
+  if(t.closest("[data-v3]")){const u=findUnit(cur);const it=u.it||u;import("./viewer.js").then(m=>m.openViewer(u.n,(it.nas||[])[0]||"")).catch(()=>toast("뷰어를 불러오지 못했어요"));return}
   if(t.id==="unfocus"){focus=null;render();return}
   if(t.id==="more"){shown+=60;render(true);return}
   if(t.id==="reset"){GROUPS.forEach(g=>sel[g.k].clear());q="";$("#q").value="";render();return}

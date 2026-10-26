@@ -180,7 +180,7 @@ h2.sec em{font-style:normal;color:var(--accent)}
 .big .nav{position:absolute;top:50%;transform:translateY(-50%);border:0;background:rgba(0,0,0,.45);color:#fff;width:40px;height:56px;font-size:24px;cursor:pointer;border-radius:6px}
 .big .nav.l{left:8px}.big .nav.r{right:8px}.big .cnt{position:absolute;right:10px;bottom:8px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;border-radius:4px;padding:2px 8px;font-family:var(--mono)}
 .sib h4{margin:6px 0 8px;font-size:13px}
-.sibs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+.sibs{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;max-height:420px;overflow:auto;padding-right:4px}
 .sibs button{border:0;background:none;padding:0;text-align:left;cursor:pointer;font-size:12px;display:grid;gap:4px;min-width:0}
 .sibs .thumb{margin:0}
 .sibs button[aria-current="true"] span{color:var(--accent);font-weight:700}
@@ -407,11 +407,12 @@ function openDetail(key,tile=0,keepScroll){
      <p style="margin:0;font-size:13px;color:var(--muted)">${esc(it.d)}</p>
      ${!u.it?`<p style="margin:0;font-size:12.5px;color:var(--muted)">${esc(it.b)}</p>`:""}
      <div class="links"><button type="button" class="pri" data-v3="1">3D로 열기</button><a href="https://gleecompany.notion.site/${it.p}" target="_blank" rel="noopener">노션 상세 보기 ↗</a>${it.u?`<a href="${esc(it.u)}" target="_blank" rel="noopener">구매·출처 ↗</a>`:""}<a href="${nasUrl(it.nf||"")}" target="_blank" rel="noopener" title="회사 NAS 계정으로 로그인해야 열려요">🔒 NAS에서 열기</a></div>
+     ${u.it&&sibs.length>1?`<div class="sib"><h4>같은 세트의 모델링 ${sibs.length}개 <small style="font-weight:400;color:var(--muted)">눌러서 이동</small></h4><div class="sibs">${sibs.map(m=>{const mp=cardPhoto(m);return `<button type="button" data-open="${m.key}" aria-current="${m.key===key}"><div class="thumb">${mp?tileImg(mp,m.n):""}</div><span>${esc(m.n)}</span></button>`}).join("")}</div></div>`:""}
      ${(it.nas||[]).length?`<div class="nas"><div class="set" style="margin-bottom:4px">NAS · 폴더 경로 (노션 기재)</div>${it.nas.map(x=>`<div class="nasrow"><code>${esc(x)}</code><button type="button" class="btn" data-copy="${esc(x)}">복사</button></div>`).join("")}</div>`:""}
      ${canUpload?`<div class="tools"><span>이미지가 틀렸나요?</span><button type="button" class="btn" data-up="${key}">이미지 넣기</button>${(ph.ids||[]).length?`<button type="button" class="btn" data-hide="${key}">${ph.hide?"기본 이미지 다시 보기":"기본 이미지 숨기기"}</button><button type="button" class="btn warn" data-clear="${key}">올린 이미지 지우기</button>`:""}</div>`:""}
    </div>
    ${ps.length>1?`<div class="gal"><h4>${u.it?"이미지 전체":"모델링 대표 이미지"} ${ps.length}장<small>누르면 위에서 크게 볼 수 있어요 · ← → 키로 넘기기</small></h4><div class="galg">${ps.map((x,k)=>`<button type="button" data-dt="${k}" aria-current="${k===tile}" aria-label="이미지 ${k+1}">${tileImg(x)}<span class="no">${k+1}</span></button>`).join("")}</div></div>`:""}
-   ${u.it&&sibs.length>1?`<div class="sib"><h4>같은 세트의 모델링 ${sibs.length}개</h4><div class="sibs">${sibs.map(m=>{const mp=cardPhoto(m);return `<button type="button" data-open="${m.key}" aria-current="${m.key===key}"><div class="thumb">${mp?tileImg(mp,m.n):""}</div><span>${esc(m.n)}</span></button>`}).join("")}</div></div>`:""}`;
+`;
   if(hl!==null&&PL[hl]&&u.it&&p&&p.file){const mi=models.indexOf(u);const t=u.tl.findIndex(([c,k])=>p.file===`h/${u.i}_${c}.jpg`&&p.k===k);const h=PL[hl].h.find(x=>x[0]===mi&&x[1]===t);if(h)$("#dlg .big").insertAdjacentHTML("beforeend",boxes(h[3]))}
   [tile+1,tile-1].forEach(x=>{const q=ps[(x+ps.length)%ps.length];const ou=q&&origUrl(q.o,1600);if(ou)new Image().src=ou});
   $("#ov").hidden=false;document.body.style.overflow="hidden";if(keepScroll)$("#ov").scrollTop=sy;else{$("#ov").scrollTop=0;$("#close").focus()}}
